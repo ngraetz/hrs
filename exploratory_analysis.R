@@ -29,10 +29,14 @@ hrs[hispanichrsGform==1, race := 'hispanic']
 hrs[otherhrsGform==1, race := 'other']
 hrs <- hrs[age >= 50, ]
 hrs[, age_group := cut(age, seq(50,95,5))]
-hrs[, age_group := as.numeric(substr(age, 2, 3))]
+hrs[, age_group := as.numeric(substr(age_group, 2, 3))]
+hrs[, cohort_group := cut(cohort, seq(1920,1960,10), dig.lab = 10)]
+hrs[, cohort_group := as.numeric(substr(cohort_group, 2, 5))]
 hrs[, female := femalehrsGform]
 hrs[, grep('hrsGform', names(hrs), value=T) := NULL]
 hrs[, variable := NULL]
+hrs[female==0, sex := 'male']
+hrs[female==1, sex := 'female']
 ## Drop outliers
 for(v in c('wealth','income')) {
   hrs <- hrs[get(v) < quantile(hrs[, get(v)], c(0.99)), ]
@@ -191,13 +195,14 @@ model_trajectories <- function(race_option, outcome_var, numeric_vars, factor_va
 }
 
 ## Drop extreme outliers
-outcome_var <- 'imp_cognitive'
-weight <- TRUE
+outcome_var <- 'cognitive'
+weight <- FALSE
 ses <- FALSE
 
 if(ses) numeric_vars <- c('cohort','edu_years') ## Include outcome; will be rescaled for modelling. 
-if(!ses) numeric_vars <- c('cohort') ## Include outcome; will be rescaled for modelling. 
-factor_vars <- c('female')
+if(!ses) numeric_vars <- c('as.factor(cohort)') ## Include outcome; will be rescaled for modelling. 
+numeric_vars <- NULL
+factor_vars <- c('as.factor(sex)', 'as.factor(cohort_group)')
 all_models <- lapply(c('white','black'), model_trajectories, outcome_var, numeric_vars, factor_vars, survey_weight = weight)
 
 ## Plot underlying age trajectories of the outcome (i.e. predictions based only on random age intercepts/slopes, conditional on the rest of the model).
