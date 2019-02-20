@@ -6,7 +6,7 @@ library(survey)
 library(gridExtra)
 library(mice)
 library(survey)
-repo <- 'C:/Users/ngraetz/Documents/repos/hrs'
+repo <- '/share/code/geospatial/ngraetz/hrs'
 setwd(repo)
 
 hrs <- fread('hrsGform.cl_20190129.csv')
@@ -29,7 +29,9 @@ hrs[hispanichrsGform==1, race := 'hispanic']
 hrs[otherhrsGform==1, race := 'other']
 hrs <- hrs[age >= 50, ]
 hrs[, age_group := cut(age, seq(50,95,5))]
-hrs[, age_group := as.numeric(substr(age, 2, 3))]
+hrs[, age_group := as.numeric(substr(age_group, 2, 3))]
+hrs[, cohort_group := cut(cohort, seq(1920,1960,10), dig.lab = 10)]
+hrs[, cohort_group := as.numeric(substr(cohort_group, 2, 5))]
 hrs[, female := femalehrsGform]
 hrs[, grep('hrsGform', names(hrs), value=T) := NULL]
 hrs[, variable := NULL]
@@ -50,6 +52,7 @@ imp_geo <- as.data.table(imp_geo)
 sapply(imp_geo, function(x) sum(is.na(x)))
 imp_hrs <- as.data.table(imp_geo)
 hrs[, imp_cognitive := imp_hrs[, cognitive]]
+saveRDS(hrs, 'hrs_imputed.RDS')
 
 ## Exploratory plots of age trajectories
 hrs_design <- svydesign(id=~id, weights=~pweight, data=hrs[!is.na(pweight) & !is.na(cognitive), ])
