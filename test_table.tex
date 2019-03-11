@@ -1,0 +1,307 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={HRS testing},
+            pdfauthor={Nick Graetz},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{HRS testing}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Nick Graetz}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{February 22, 2019}
+
+
+\begin{document}
+\maketitle
+
+\small
+Linear mixed model fit by maximum likelihood {[}`lmerMod'{]} Formula:
+angle \textasciitilde{} temp + (1 \textbar{} replicate) + (1 \textbar{}
+recipe:replicate) Data: cake
+
+\begin{verbatim}
+ AIC      BIC   logLik deviance df.resid 
+\end{verbatim}
+
+1668.8 1686.7 -829.4 1658.8 265
+
+Scaled residuals: Min 1Q Median 3Q Max -2.77207 -0.56112 -0.03137
+0.57250 2.64880
+
+Random effects: Groups Name Variance Std.Dev. recipe:replicate
+(Intercept) 3.973 1.993\\
+replicate (Intercept) 35.324 5.943\\
+Residual 20.615 4.540\\
+Number of obs: 270, groups: recipe:replicate, 45; replicate, 15
+
+Fixed effects: Estimate Std. Error t value (Intercept) 0.51587 3.60429
+0.143 temp 0.15803 0.01618 9.767
+
+Correlation of Fixed Effects: (Intr) temp -0.898 Linear mixed model fit
+by maximum likelihood {[}`lmerMod'{]} Formula: angle \textasciitilde{}
+factor(temperature) + (1 \textbar{} replicate) + (1 \textbar{}
+recipe:replicate) Data: cake
+
+\begin{verbatim}
+ AIC      BIC   logLik deviance df.resid 
+\end{verbatim}
+
+1670.2 1702.6 -826.1 1652.2 261
+
+Scaled residuals: Min 1Q Median 3Q Max -2.85441 -0.61426 -0.07482
+0.55722 2.85207
+
+Random effects: Groups Name Variance Std.Dev. recipe:replicate
+(Intercept) 4.072 2.018\\
+replicate (Intercept) 35.324 5.943\\
+Residual 20.022 4.475\\
+Number of obs: 270, groups: recipe:replicate, 45; replicate, 15
+
+Fixed effects: Estimate Std. Error t value (Intercept) 32.1222 1.5873
+20.237 factor(temperature).L 6.6109 0.6670 9.911 factor(temperature).Q
+-0.3855 0.6670 -0.578 factor(temperature).C -0.5483 0.6670 -0.822
+factor(temperature)\^{}4 -1.2977 0.6670 -1.945 factor(temperature)\^{}5
+-0.9141 0.6670 -1.370
+
+Correlation of Fixed Effects: (Intr) fc().L fc().Q fc().C fc()\^{}4
+fctr(tmp).L 0.000\\
+fctr(tmp).Q 0.000 0.000\\
+fctr(tmp).C 0.000 0.000 0.000\\
+fctr(tmp)\^{}4 0.000 0.000 0.000 0.000\\
+fctr(tmp)\^{}5 0.000 0.000 0.000 0.000 0.000
+
+\% Table created by stargazer v.5.2.2 by Marek Hlavac, Harvard
+University. E-mail: hlavac at fas.harvard.edu \% Date and time: Fri, Feb
+22, 2019 - 5:17:59 PM
+
+\begin{table}[!htbp] \centering 
+  \caption{An Illustrative Model Using Cake Data} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lcc} 
+\\[-1.8ex]\hline \\[-1.8ex] 
+\\[-1.8ex] & \textbf{Model 1} & \textbf{Model 2}\\ 
+\hline \\[-1.8ex] 
+ Temperature (Continuous) & 0.158$^{***}$ &  \\ 
+  & (0.016) &  \\ 
+  Temperature (Factor $<$ 185) &  & 6.611$^{***}$ \\ 
+  &  & (0.667) \\ 
+  Temperature (Factor $<$ 195) &  & $-$0.386 \\ 
+  &  & (0.667) \\ 
+  Temperature (Factor $<$ 205) &  & $-$0.548 \\ 
+  &  & (0.667) \\ 
+  Temperature (Factor $<$ 215) &  & $-$1.298$^{*}$ \\ 
+  &  & (0.667) \\ 
+  Temperature (Factor $<$ 225) &  & $-$0.914 \\ 
+  &  & (0.667) \\ 
+  Constant & 0.516 & 32.122$^{***}$ \\ 
+  & (3.604) & (1.587) \\ 
+ N & 270 & 270 \\ 
+Log Likelihood & $-$829.378 & $-$826.090 \\ 
+AIC & 1668.755 & 1670.180 \\ 
+BIC & 1686.747 & 1702.565 \\ 
+\hline \\[-1.8ex] 
+\multicolumn{3}{l}{$^{***}$p $<$ .01; $^{**}$p $<$ .05; $^{*}$p $<$ .1} \\ 
+\end{tabular} 
+\end{table}
+
+Tables 1\\
+2 \% Table created by stargazer v.5.2.2 by Marek Hlavac, Harvard
+University. E-mail: hlavac at fas.harvard.edu 3 \% Date and time: Fri,
+Feb 22, 2019 - 5:17:59 PM 4 \textbackslash{}begin\{table\}{[}!htbp{]}
+\textbackslash{}centering 5 \textbackslash{}caption\{An Illustrative
+Model Using Cake Data\} 6 \textbackslash{}label\{\} 7
+\textbackslash{}begin\{tabular\}\{@\{\textbackslash{}extracolsep\{5pt\}\}lcc\}
+8 \textbackslash{}\textbackslash{}{[}-1.8ex{]}\textbackslash{}hline
+\textbackslash{}\textbackslash{}{[}-1.8ex{]} 9
+\textbackslash{}\textbackslash{}{[}-1.8ex{]} \&
+\textbackslash{}textbf\{Model 1\} \& \textbackslash{}textbf\{Model
+2\}\textbackslash{}\textbackslash{} 10 \textbackslash{}hline
+\textbackslash{}\textbackslash{}{[}-1.8ex{]} 11 Temperature (Continuous)
+\& 0.158\(^{***}\) \& \textbackslash{}\textbackslash{} 12 \& (0.016) \&
+\textbackslash{}\textbackslash{} 13 Temperature (Factor \(<\) 185) \& \&
+6.611\(^{***}\) \textbackslash{}\textbackslash{} 14 \& \& (0.667)
+\textbackslash{}\textbackslash{} 15 Temperature (Factor \(<\) 195) \& \&
+\$-\$0.386 \textbackslash{}\textbackslash{} 16 \& \& (0.667)
+\textbackslash{}\textbackslash{} 17 Temperature (Factor \(<\) 205) \& \&
+\$-\$0.548 \textbackslash{}\textbackslash{} 18 \& \& (0.667)
+\textbackslash{}\textbackslash{} 19 Temperature (Factor \(<\) 215) \& \&
+\$-\(1.298\)\^{}\{\emph{\}\$ \textbackslash{}\textbackslash{} 20 \& \&
+(0.667) \textbackslash{}\textbackslash{} 21 Temperature (Factor \(<\)
+225) \& \&
+\$-\(0.914 \\\\ 22 & & (0.667) \\\\ 23 Constant & 0.516 & 32.122\)\^{}\{}\textbf{\}\$
+\textbackslash{}\textbackslash{} 24 \& (3.604) \& (1.587)
+\textbackslash{}\textbackslash{} 25 N \& 270 \& 270
+\textbackslash{}\textbackslash{} 26 Log Likelihood \& \$-\$829.378 \&
+\$-\(826.090 \\\\ 27 AIC & 1668.755 & 1670.180 \\\\ 28 BIC & 1686.747 & 1702.565 \\\\ 29 \\hline \\\\[-1.8ex] 30 \\multicolumn{3}{l}{\)\^{}\{}*\}\$p
+\(<\) .01; \(^{**}\)p \(<\) .05; \(^{*}\)p \(<\) .1\}
+\textbackslash{}\textbackslash{} 31 \textbackslash{}end\{tabular\} 32
+\textbackslash{}end\{table\}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{print}\NormalTok{(Tables)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+                                                                                                    Tables
+\end{verbatim}
+
+1\\
+2 \% Table created by stargazer v.5.2.2 by Marek Hlavac, Harvard
+University. E-mail: hlavac at fas.harvard.edu 3 \% Date and time: Fri,
+Feb 22, 2019 - 5:17:59 PM 4 \textbackslash{}begin\{table\}{[}!htbp{]}
+\textbackslash{}centering 5 \textbackslash{}caption\{An Illustrative
+Model Using Cake Data\} 6 \textbackslash{}label\{\} 7
+\textbackslash{}begin\{tabular\}\{@\{\textbackslash{}extracolsep\{5pt\}\}lcc\}
+8 \textbackslash{}\textbackslash{}{[}-1.8ex{]}\textbackslash{}hline
+\textbackslash{}\textbackslash{}{[}-1.8ex{]} 9
+\textbackslash{}\textbackslash{}{[}-1.8ex{]} \&
+\textbackslash{}textbf\{Model 1\} \& \textbackslash{}textbf\{Model
+2\}\textbackslash{}\textbackslash{} 10 \textbackslash{}hline
+\textbackslash{}\textbackslash{}{[}-1.8ex{]} 11 Temperature (Continuous)
+\& 0.158\(^{***}\) \& \textbackslash{}\textbackslash{} 12 \& (0.016) \&
+\textbackslash{}\textbackslash{} 13 Temperature (Factor \(<\) 185) \& \&
+6.611\(^{***}\) \textbackslash{}\textbackslash{} 14 \& \& (0.667)
+\textbackslash{}\textbackslash{} 15 Temperature (Factor \(<\) 195) \& \&
+\$-\$0.386 \textbackslash{}\textbackslash{} 16 \& \& (0.667)
+\textbackslash{}\textbackslash{} 17 Temperature (Factor \(<\) 205) \& \&
+\$-\$0.548 \textbackslash{}\textbackslash{} 18 \& \& (0.667)
+\textbackslash{}\textbackslash{} 19 Temperature (Factor \(<\) 215) \& \&
+\$-\(1.298\)\^{}\{\emph{\}\$ \textbackslash{}\textbackslash{} 20 \& \&
+(0.667) \textbackslash{}\textbackslash{} 21 Temperature (Factor \(<\)
+225) \& \&
+\$-\(0.914 \\\\ 22 & & (0.667) \\\\ 23 Constant & 0.516 & 32.122\)\^{}\{}\textbf{\}\$
+\textbackslash{}\textbackslash{} 24 \& (3.604) \& (1.587)
+\textbackslash{}\textbackslash{} 25 \textbackslash{}hline 26
+\{\textbackslash{}bf Random Effect\} \& \&
+\textbackslash{}\textbackslash{} 27 \textbackslash{}hline 28
+\textbackslash{}\# of Recipe:Replicate \& 45 \& 45
+\textbackslash{}\textbackslash{} 29 Recipe:Replicate Standard Deviation
+\& 1.993 \& 2.018 \textbackslash{}\textbackslash{} 30
+\textbackslash{}\textbackslash{} 31 \textbackslash{}\# of Replicate \&
+15 \& 15 \textbackslash{}\textbackslash{} 32 Replicate Standard
+Deviation \& 5.943 \& 5.943 \textbackslash{}\textbackslash{} 33 N \& 270
+\& 270 \textbackslash{}\textbackslash{} 34 Log Likelihood \&
+\$-\$829.378 \&
+\$-\(826.090 \\\\ 35 AIC & 1668.755 & 1670.180 \\\\ 36 BIC & 1686.747 & 1702.565 \\\\ 37 \\hline \\\\[-1.8ex] 38 \\multicolumn{3}{l}{\)\^{}\{}*\}\$p
+\(<\) .01; \(^{**}\)p \(<\) .05; \(^{*}\)p \(<\) .1\}
+\textbackslash{}\textbackslash{} 39 \textbackslash{}end\{tabular\} 40
+\textbackslash{}end\{table\}
+
+
+\end{document}

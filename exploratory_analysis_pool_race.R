@@ -85,11 +85,11 @@ plot1 <- ggplot() +
                 color=race),
             size=2) + 
   geom_ribbon(data=all,
-             aes(ymin=lower,
-                 ymax=upper,
-                 x=age,
-                 fill=race),
-             alpha=0.5) + 
+              aes(ymin=lower,
+                  ymax=upper,
+                  x=age,
+                  fill=race),
+              alpha=0.5) + 
   ylim(c(0,20)) + 
   labs(x='Age',y='Population mean',title='Survey-weighted mean cognitive score by age (stratified by race)') + 
   theme_minimal()
@@ -146,6 +146,7 @@ model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_v
     if(grepl('hispanic', group_option)) model_hrs <- model_hrs[race=='hispanic', ]
   }
   if(group_option %in% c('white','black','hispanic')) model_hrs <- hrs[race==group_option & !is.na(get(outcome_var)), ]
+  if(group_option == 'all') model_hrs <- copy(hrs)
   
   ## Subset to respondents with at least 3 responses on outcome.
   id_nums <- model_hrs[, .N , by = id]
@@ -176,6 +177,7 @@ model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_v
   # model_formula <- as.formula(paste0(outcome_var, ' ~ ', paste(c(factor_vars, numeric_vars), collapse=' + '), ' + (poly(age,2)|id_factor)'))
   # model_formula <- as.formula(paste0(outcome_var, ' ~ ', paste(c(factor_vars, numeric_vars), collapse=' + '), ' + age_poly_1 + age_poly_2 + (age_poly_1 + age_poly_2|id_factor)'))
   model_formula <- as.formula(paste0(outcome_var, ' ~ ', paste(c(factor_vars, numeric_vars), collapse=' + '), ' + age_poly_1*race + age_poly_2*race + (age_poly_1|id_factor)'))
+  message(model_formula)
   if(survey_weight) {
     model_hrs <- model_hrs[!is.na(pweight) & pweight > 0, ]
     model_hrs[, pweight := pweight / 10000]
@@ -191,27 +193,26 @@ model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_v
   # setnames(res, c('(Intercept)','poly(age, 2)1','poly(age, 2)2'), c('age_int','age_slope1','age_slope2'))
   # setnames(res, c('(Intercept)','age_poly_1','age_poly_2'), c('age_int','age_slope1','age_slope2'))
   # res <- res[, c('id_factor','age_int','age_slope1','age_slope2')]
-  setnames(res, c('(Intercept)','age_poly_1','age_poly_2','age_poly_1:racehispanic','age_poly_1:raceother','age_poly_1:racewhite',
-                  'racehispanic:age_poly_2','raceother:age_poly_2','racewhite:age_poly_2'),
-           c('age_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white',
+  setnames(res, c('(Intercept)','racehispanic','raceother','racewhite','age_poly_1','age_poly_2','age_poly_1:racehispanic','age_poly_1:raceother','age_poly_1:racewhite','racehispanic:age_poly_2','raceother:age_poly_2','racewhite:age_poly_2'),
+           c('age_int','hispanic_int','other_int','white_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white',
              'age_slope2_hispanic','age_slope2_other','age_slope2_white'))
-  res <- res[, c('id_factor','age_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white',
-                 'age_slope2_hispanic','age_slope2_other','age_slope2_white')]
+  res <- res[, c('id_factor','age_int','hispanic_int','other_int','white_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white','age_slope2_hispanic','age_slope2_other','age_slope2_white')]
   plot_data <- merge(model_hrs, res, by='id_factor')
   # plot_data[, growth_curve := age_int + (age_poly_1 * age_slope1) + (age_poly_2 * age_slope2)]
   plot_data[race=='black', growth_curve := age_int + (age_poly_1 * (age_slope1)) + (age_poly_2 * (age_slope2))]
-  plot_data[race=='white', growth_curve := age_int + (age_poly_1 * (age_slope1 + age_slope1_white)) + (age_poly_2 * (age_slope2 + age_slope2_white))]
-  plot_data[race=='other', growth_curve := age_int + (age_poly_1 * (age_slope1 + age_slope1_other)) + (age_poly_2 * (age_slope2 + age_slope2_other))]
-  plot_data[race=='hispanic', growth_curve := age_int + (age_poly_1 * (age_slope1 + age_slope1_hispanic)) + (age_poly_2 * (age_slope2 + age_slope2_hispanic))]
+  plot_data[race=='white', growth_curve := (age_int + white_int) + (age_poly_1 * (age_slope1 + age_slope1_white)) + (age_poly_2 * (age_slope2 + age_slope2_white))]
+  plot_data[race=='other', growth_curve := (age_int + other_int) + (age_poly_1 * (age_slope1 + age_slope1_other)) + (age_poly_2 * (age_slope2 + age_slope2_other))]
+  plot_data[race=='hispanic', growth_curve := (age_int + hispanic_int) + (age_poly_1 * (age_slope1 + age_slope1_hispanic)) + (age_poly_2 * (age_slope2 + age_slope2_hispanic))]
   plot_data[, growth_curve := growth_curve * scales[variable==outcome_var, sd] + scales[variable==outcome_var, mean]]
   plot_data[, group := group_option]
+  if(group_option=='all') plot_data[, group := race]
   # setnames(res, c('(Intercept)','age'), c('age_int','age_slope'))
   # res <- res[, c('id_factor','age_int','age_slope')]
   # plot_data <- merge(model_hrs, res, by='id_factor')
   # plot_data[, growth_curve := age_int + (age * age_slope)]
   # plot_data[, growth_curve := growth_curve * scales[variable=='cognitive', sd] + scales[variable=='cognitive', mean]]
   # plot_data[, age := age * scales[variable=='age', sd] + scales[variable=='age', mean]]
-
+  
   ## Calculate population average trajectory.
   # mean_growth <- data.table(age = seq(min(model_hrs$age), max(model_hrs$age), .01),
   #                           mean_int = mean(res$age_int),
@@ -221,172 +222,134 @@ model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_v
   # mean_growth[, growth_curve := growth_curve * scales[variable=='cognitive', sd] + scales[variable=='cognitive', mean]]
   # mean_growth[, age := age * scales[variable=='age', sd] + scales[variable=='age', mean]]
   plot_data[, N := 1]
-  mean_growth <- plot_data[, list(N=sum(N), age_poly_1=mean(age_poly_1), age_poly_2=mean(age_poly_2)), by=c('age')]
+  mean_growth <- plot_data[, list(N=sum(N), age_poly_1=mean(age_poly_1), age_poly_2=mean(age_poly_2)), by=c('age','race')]
   # mean_growth <- unique(plot_data[, c('age','age_poly_1','age_poly_2')])
   mean_growth[, age_int := mean(res$age_int)]
   mean_growth[, age_slope1 := mean(res$age_slope1)]
   mean_growth[, age_slope2 := mean(res$age_slope2)]
+  for(r in c('white','hispanic','other')) {
+    mean_growth[race==r, age_int := age_int + mean(res[, get(paste0(r,'_int'))])]
+    mean_growth[race==r, age_slope1 := age_slope1 + mean(res[, get(paste0('age_slope1_',r))])]
+    mean_growth[race==r, age_slope2 := age_slope2 + mean(res[, get(paste0('age_slope2_',r))])]
+  }
   mean_growth[, growth_curve := age_int + (age_poly_1 * age_slope1) + (age_poly_2 * age_slope2)]
   mean_growth[, growth_curve := growth_curve * scales[variable==outcome_var, sd] + scales[variable==outcome_var, mean]]
   mean_growth[, group := group_option]
+  if(group_option=='all') mean_growth[, group := race]
   return(list(model1, plot_data, mean_growth))
   
 }
 
 
-for(outcome_var in c('imp_cognitive','cognitive')) {
-for(REML in c(FALSE)) {
-for(weight in c(TRUE, FALSE)) {
-for(ses in c(TRUE, FALSE)) {
-  
-if(ses) numeric_vars <- c('edu_years','wealth','log_income') 
-if(!ses) numeric_vars <- NULL
-factor_vars <- c('as.factor(female)','as.factor(cohort_group)')
-
-## BY RACE
-all_models <- lapply(c('white','black'), model_trajectories, outcome_var, numeric_vars, factor_vars, survey_weight = weight, use_REML = REML)
-
-## Plot underlying age trajectories of the outcome (i.e. predictions based only on random age intercepts/slopes, conditional on the rest of the model).
-plot_data <- rbind(all_models[[1]][[2]], all_models[[2]][[2]])
-mean_growth <- rbind(all_models[[1]][[3]], all_models[[2]][[3]])
-plot_data[, unique_ids := uniqueN(id_factor), by = group]
-mean_growth <- merge(mean_growth, unique(plot_data[,c('group','unique_ids')]), by='group')
-gg1 <- ggplot() + 
-  geom_line(data = plot_data,
-            aes(x = age,
-                y = growth_curve,
-                group = id_factor),
-            alpha = 0.1) + 
-  geom_line(data = mean_growth,
-            aes(x = age,
-                y= growth_curve),
-            color = 'red',
-            size = 3) + 
-  xlim(c(50,95)) + 
-  ylim(c(0,27)) + 
-  labs(x = 'Age',
-       y= 'Cognition score') + 
-  theme_minimal() + 
-  facet_wrap(~group)
-gg2 <- ggplot() + 
-  geom_line(data = mean_growth,
-            aes(x = age,
-                y= growth_curve,
-                color = group),
-            size = 3) +
-  geom_label(data = mean_growth[age==60, ],
-            aes(x = age,
-                y = growth_curve,
-                label = unique_ids,
-                group=group)) + 
-  xlim(c(50,95)) + 
-  ylim(c(0,20)) +
-  labs(x = 'Age',
-       y= 'Cognition score',
-       color = 'Race') + 
-  theme_minimal()
-
-## BY BASELINE COGNITION.
-all_models <- lapply(c('low','middle','high'), model_trajectories, outcome_var, numeric_vars, factor_vars, survey_weight = weight, use_REML = REML)
-
-plot_data <- rbind(all_models[[1]][[2]], all_models[[2]][[2]], all_models[[3]][[2]])
-plot_data[, group := factor(group, levels=c('low','middle','high'))]
-mean_growth <- rbind(all_models[[1]][[3]], all_models[[2]][[3]], all_models[[3]][[3]])
-mean_growth[, group := factor(group, levels=c('low','middle','high'))]
-plot_data[, unique_ids := uniqueN(id_factor), by = group]
-mean_growth <- merge(mean_growth, unique(plot_data[,c('group','unique_ids')]), by='group')
-gg3 <- ggplot() + 
-  geom_line(data = plot_data,
-            aes(x = age,
-                y = growth_curve,
-                group = id_factor),
-            alpha = 0.1) + 
-  geom_line(data = mean_growth,
-            aes(x = age,
-                y= growth_curve),
-            color = 'red',
-            size = 3) + 
-  xlim(c(50,80)) + 
-  ylim(c(0,27)) + 
-  labs(x = 'Age',
-       y= 'Cognition score') + 
-  theme_minimal() + 
-  facet_wrap(~group)
-gg4 <- ggplot() + 
-  geom_line(data = mean_growth,
-            aes(x = age,
-                y= growth_curve,
-                color = group),
-            size = 3) +
-  geom_label(data = mean_growth[age==60,],
-            aes(x = age,
-                y = growth_curve,
-                label = unique_ids,
-                group=group)) + 
-  xlim(c(50,80)) + 
-  ylim(c(0,27)) +
-  labs(x = 'Age',
-       y= 'Cognition score',
-       color='Baseline\ncognition') + 
-  theme_minimal()
-
-## BY BASELINE COGNITION * RACE.
-all_models <- lapply(c('low_white','middle_white','high_white','low_black','middle_black','high_black'), model_trajectories, outcome_var, numeric_vars, factor_vars, survey_weight = weight, use_REML = REML)
-
-plot_data <- rbind(all_models[[1]][[2]], all_models[[2]][[2]], all_models[[3]][[2]],
-                   all_models[[4]][[2]], all_models[[5]][[2]], all_models[[6]][[2]])
-plot_data[, group := factor(group, levels=c('low_white','middle_white','high_white','low_black','middle_black','high_black'))]
-mean_growth <- rbind(all_models[[1]][[3]], all_models[[2]][[3]], all_models[[3]][[3]],
-                     all_models[[4]][[3]], all_models[[5]][[3]], all_models[[6]][[3]])
-mean_growth[, group := factor(group, levels=c('low_white','middle_white','high_white','low_black','middle_black','high_black'))]
-plot_data[, unique_ids := uniqueN(id_factor), by = group]
-mean_growth <- merge(mean_growth, unique(plot_data[,c('group','unique_ids')]), by='group')
-gg5 <- ggplot() + 
-  geom_line(data = plot_data,
-            aes(x = age,
-                y = growth_curve,
-                group = id_factor),
-            alpha = 0.1) + 
-  geom_line(data = mean_growth,
-            aes(x = age,
-                y= growth_curve),
-            color = 'red',
-            size = 3) + 
-  xlim(c(50,80)) + 
-  ylim(c(0,27)) + 
-  labs(x = 'Age',
-       y= 'Cognition score') + 
-  theme_minimal() + 
-  facet_wrap(~group)
-gg6 <- ggplot() + 
-  geom_line(data = mean_growth,
-            aes(x = age,
-                y= growth_curve,
-                color = group),
-            size = 3) +
-  geom_label(data = mean_growth[age==60,],
-             aes(x = age,
-                 y = growth_curve,
-                 label = unique_ids,
-                 group=group)) + 
-  scale_color_manual(values=c('#fd8d3c','#f03b20','#bd0026','#41b6c4','#2c7fb8','#253494')) + 
-  xlim(c(50,80)) + 
-  ylim(c(0,27)) +
-  labs(x = 'Age',
-       y= 'Cognition score',
-       color='Baseline\ncognition') + 
-  theme_minimal()
-
-pdf(paste0('output/', outcome_var, '_ses', ses ,'_weight', weight, '_reml', REML, '.pdf'), height=8, width=12)
-print(gg1)
-print(gg2)
-print(gg3)
-print(gg4)
-print(gg5)
-print(gg6)
-dev.off()
-
-}
-}
-}
+for(outcome_var in c('cognitive')) {
+  for(REML in c(FALSE)) {
+    for(weight in c(FALSE)) {
+      for(ses in c(TRUE, FALSE)) {
+        
+        if(ses) numeric_vars <- c('edu_years','wealth','log_income') 
+        if(!ses) numeric_vars <- NULL
+        factor_vars <- c('as.factor(female)','as.factor(cohort_group)')
+        
+        ## All baseline cognition levels
+        all_models <- lapply(c('all'), model_trajectories, outcome_var, numeric_vars, factor_vars, survey_weight = weight, use_REML = REML)
+        
+        ## Plot underlying age trajectories of the outcome (i.e. predictions based only on random age intercepts/slopes, conditional on the rest of the model).
+        plot_data <- rbind(all_models[[1]][[2]])
+        mean_growth <- rbind(all_models[[1]][[3]])
+        plot_data[, unique_ids := uniqueN(id_factor), by = group]
+        mean_growth <- merge(mean_growth, unique(plot_data[,c('group','unique_ids')]), by='group')
+        gg1 <- ggplot() + 
+          geom_line(data = plot_data,
+                    aes(x = age,
+                        y = growth_curve,
+                        group = id_factor),
+                    alpha = 0.1) + 
+          geom_line(data = mean_growth,
+                    aes(x = age,
+                        y= growth_curve),
+                    color = 'red',
+                    size = 3) + 
+          xlim(c(50,95)) + 
+          ylim(c(0,27)) + 
+          labs(x = 'Age',
+               y= 'Cognition score') + 
+          theme_minimal() + 
+          facet_wrap(~group)
+        gg2 <- ggplot() + 
+          geom_line(data = mean_growth,
+                    aes(x = age,
+                        y= growth_curve,
+                        color = group),
+                    size = 3) +
+          geom_label(data = mean_growth[age==60, ],
+                     aes(x = age,
+                         y = growth_curve,
+                         label = unique_ids,
+                         group=group)) + 
+          xlim(c(50,95)) + 
+          ylim(c(0,20)) +
+          labs(x = 'Age',
+               y= 'Cognition score',
+               color = 'Race') + 
+          theme_minimal()
+        
+        ## BY BASELINE COGNITION.
+        all_models <- lapply(c('low','middle','high'), model_trajectories, outcome_var, numeric_vars, factor_vars, survey_weight = weight, use_REML = REML)
+        
+        plot_data <- rbind(all_models[[1]][[2]], all_models[[2]][[2]], all_models[[3]][[2]])
+        plot_data <- plot_data[race %in% c('white','black')]
+        plot_data[, group := paste0(group,'_',race)]
+        plot_data[, group := factor(group, levels=c('low_white','middle_white','high_white','low_black','middle_black','high_black'))]
+        mean_growth <- rbind(all_models[[1]][[3]], all_models[[2]][[3]], all_models[[3]][[3]])
+        mean_growth <- mean_growth[race %in% c('white','black')]
+        mean_growth[, group := paste0(group,'_',race)]
+        mean_growth[, group := factor(group, levels=c('low_white','middle_white','high_white','low_black','middle_black','high_black'))]
+        plot_data[, unique_ids := uniqueN(id_factor), by = group]
+        mean_growth <- merge(mean_growth, unique(plot_data[,c('group','unique_ids')]), by='group')
+        gg3 <- ggplot() + 
+          geom_line(data = plot_data,
+                    aes(x = age,
+                        y = growth_curve,
+                        group = id_factor),
+                    alpha = 0.1) + 
+          geom_line(data = mean_growth,
+                    aes(x = age,
+                        y= growth_curve),
+                    color = 'red',
+                    size = 3) + 
+          xlim(c(50,80)) + 
+          ylim(c(0,27)) + 
+          labs(x = 'Age',
+               y= 'Cognition score') + 
+          theme_minimal() + 
+          facet_wrap(~group)
+        gg4 <- ggplot() + 
+          geom_line(data = mean_growth,
+                    aes(x = age,
+                        y= growth_curve,
+                        color = group),
+                    size = 3) +
+          geom_label(data = mean_growth[age==60,],
+                     aes(x = age,
+                         y = growth_curve,
+                         label = unique_ids,
+                         group=group)) + 
+          scale_color_manual(values=c('#fd8d3c','#f03b20','#bd0026','#41b6c4','#2c7fb8','#253494')) + 
+          xlim(c(50,80)) + 
+          ylim(c(0,27)) +
+          labs(x = 'Age',
+               y= 'Cognition score',
+               color='Baseline\ncognition') + 
+          theme_minimal()
+        
+        pdf(paste0('output/', outcome_var, '_ses', ses ,'_weight', weight, '_reml', REML, '.pdf'), height=8, width=12)
+        print(gg1)
+        print(gg2)
+        print(gg3)
+        print(gg4)
+        dev.off()
+        
+      }
+    }
+  }
 }

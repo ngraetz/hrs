@@ -1,0 +1,51 @@
+---
+title: "HRS testing"
+author: "Nick Graetz"
+date: "February 22, 2019"
+output: pdf_document
+---
+  
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Load knitr package and settings
+library(knitr)
+library(data.table)
+library(ggplot2)
+library(formatR)
+library(dplyr)
+library(gridExtra)
+library(lme4)
+library(survey)
+library(mice)
+library(survey)
+library(purrr)
+library(stargazer)
+options(scipen=999)
+#opts_chunk$set(fig.align='center', tidy=TRUE, tidy.opts=list(blank=TRUE, width.cutoff=40), warning=FALSE,message=FALSE)
+#opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
+```
+
+\small
+```{r, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE, results='asis'}
+library(lme4)
+library(stargazer)
+library(xtable)
+data(cake)
+
+insertrow <- function(existingDF, newrow, r) {
+  existingDF[seq(r+1,nrow(existingDF)+1),] <- existingDF[seq(r,nrow(existingDF)),]
+  existingDF[r,] <- newrow
+  existingDF
+}
+
+summary(M1 <- lmer(angle ~ temp + (1 | replicate) + (1|recipe:replicate), cake, REML= FALSE))
+summary(M2 <- lmer(angle ~ factor(temperature) + (1 | replicate) + (1|recipe:replicate), cake, REML= FALSE))
+
+
+
+stargazer(M1, M2, style="ajps", type = 'latex', title="An Illustrative Model Using Cake Data",  dep.var.labels.include = FALSE, 
+                    covariate.labels=c( "Temperature (Continuous)",  "Temperature (Factor $<$ 185)", "Temperature (Factor $<$ 195)", "Temperature (Factor $<$ 205)", "Temperature (Factor $<$ 215)", "Temperature (Factor $<$ 225)")
+)
+
+
+print(xtable((M1)), comment=FALSE)
+```
