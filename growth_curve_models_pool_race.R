@@ -1,6 +1,51 @@
 repo <- 'C:/Users/ngraetz/Documents/repos/hrs'
 setwd(repo)
-hrs <- readRDS('hrs_imputed.RDS')
+hrs <- readRDS('hrs_imputed_v2.RDS')
+
+## Make exploratory tables
+hrs[, waves := ifelse(is.na(cognitive), 0, 1)]
+hrs[, waves := sum(waves), by=id]
+hrs[, baseline_age := min(age, na.rm=T), by=id]
+totals <- unique(hrs[!is.na(edu_cat) & !is.na(race), c('id','waves','race','edu_cat'), with=F])
+totals[, N := 1]
+grand <- totals[, list(N=sum(N)), by='waves']
+grand <- dcast(grand, .~waves, value.var='N')
+setnames(grand,'.','Variable')
+grand[, Variable := 'N']
+race_edu_totals <- totals[, list(N=sum(N)), by=c('waves','race','edu_cat')]
+race_edu_totals[, Variable := paste0(race,', ',edu_cat)]
+race_edu_totals <- dcast(race_edu_totals, Variable~waves, value.var='N')
+age <- hrs[, list(baseline_age=mean(baseline_age)), by='waves']
+age <- dcast(age, .~waves, value.var='baseline_age')
+setnames(age,'.','Variable')
+age[, Variable := 'Baseline age']
+table1 <- rbind(race_edu_totals,grand,age)
+
+## Make same table with only those where we observe "baseline" cognition
+model_hrs <- hrs[!is.na(cognitive), ]
+model_hrs[, age_obs := age]
+model_hrs[, age_obs := min(age_obs, na.rm = T), by = id]
+model_hrs[age==age_obs, baseline_cog := cognitive]
+model_hrs[, baseline_cog := max(baseline_cog, na.rm = T), by = id] ## Repeat within individual
+model_hrs <- model_hrs[age_obs < 60, ]
+model_hrs[, waves := ifelse(is.na(cognitive), 0, 1)]
+model_hrs[, waves := sum(waves), by=id]
+model_hrs[, baseline_age := min(age, na.rm=T), by=id]
+totals <- unique(model_hrs[!is.na(edu_cat) & !is.na(race), c('id','waves','race','edu_cat'), with=F])
+totals[, N := 1]
+grand <- totals[, list(N=sum(N)), by='waves']
+grand <- dcast(grand, .~waves, value.var='N')
+setnames(grand,'.','Variable')
+grand[, Variable := 'N']
+race_edu_totals <- totals[, list(N=sum(N)), by=c('waves','race','edu_cat')]
+race_edu_totals[, Variable := paste0(race,', ',edu_cat)]
+race_edu_totals <- dcast(race_edu_totals, Variable~waves, value.var='N')
+age <- model_hrs[, list(baseline_age=mean(baseline_age)), by='waves']
+age <- dcast(age, .~waves, value.var='baseline_age')
+setnames(age,'.','Variable')
+age[, Variable := 'Baseline age']
+table1 <- rbind(race_edu_totals,grand,age)
+
 model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_vars, survey_weight = FALSE, use_REML = FALSE, use_base_cog=FALSE, edu_race=FALSE) {
   
   ## Subset data to race or baseline cognition.

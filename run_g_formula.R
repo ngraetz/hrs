@@ -21,7 +21,7 @@ hrs[, cohort := as.numeric(substr(cohort,1,4))]
 hrs[, id := hhidpn]
 hrs <- melt(hrs,
             id.vars = c('id','cohort','femalehrsGform','whitehrsGform','blackhrsGform','hispanichrsGform','otherhrsGform','educYrs'),
-            measure.vars = patterns('age_','cogScore_','sampWeight_','intDate_','wealth_','income_'),
+            measure.vars = patterns('age_','cogScore_','sampWeight_','intDate_','wealth_','income_','heart_','diab_'),
             value.name = c('age','cognitive','pweight','intdate','wealth','income'))
 hrs[, wave := as.Date(as.numeric(intdate), origin = '1960-01-01')]
 hrs[, wave := as.numeric(substr(wave,1,4))]
@@ -38,10 +38,11 @@ DF[, cohort_group := cut(cohort, seq(1920,1960,10), dig.lab = 10)]
 DF[, cohort_group := as.numeric(substr(cohort_group, 2, 5))]
 #DF <- merge(DF, hrs[, c('id','age','wave_group')], by=c('id','age'))
 DF[, married := ifelse(marital_stat=='1.married', 1, 0)]
+DF[, college := ifelse(edu_years>=16, 1, 0)]
 
 ## Define time-varying (tv) and time-constant (tc) variables and lag everything.
-tc_vars <- c('female','cohort_group','educ_years','race','migrant')
-tv_vars <- c('imp_cognitive','log_income','wealth')
+tc_vars <- c('female','cohort_group','college','race','migrant')
+tv_vars <- c('imp_cognitive','diab','heart')
 DF <- as.data.table(DF)
 DF[, (paste0('l.', tv_vars)) := shift(.SD), by='id', .SDcols=tv_vars]
 
@@ -62,22 +63,25 @@ baseForm <- as.formula(paste0('~ ', paste(tc_vars, collapse = ' + ')))
 
 # Formula for longitudinal models
 formulas <- list(
-  update(baseForm, imp_cognitive ~ . + age * (l.imp_cognitive + l.log_income + l.wealth)),
-  update(baseForm, wealth ~ . + age * (l.imp_cognitive + l.log_income + l.wealth)),
-  update(baseForm, log_income ~ . + age * (l.imp_cognitive + l.log_income + l.wealth)),
-  # update(baseForm, bmi ~ . + age * (l.imp_cognitive + l.log_income + l.wealth + l.bmi + l.stroke)),
-  # update(baseForm, stroke ~ . + age * (l.imp_cognitive + l.log_income + l.wealth + l.bmi + l.stroke)),
-  update(baseForm, died ~ . + age * (l.imp_cognitive + l.log_income + l.wealth))
+  update(baseForm, imp_cognitive ~ . + age * (l.diab + l.heart)),
+  update(baseForm, diab ~ . + age * (l.diab + l.heart)),
+  update(baseForm, heart ~ . + age * (l.diab + l.heart)),
+  update(baseForm, died ~ . + age * (l.diab + l.heart))
 )
-families <- list(gaussian, gaussian, gaussian, quasibinomial) # families for models
+families <- list(gaussian, quasibinomial, quasibinomial, quasibinomial) # families for models
 functions <- list(svyglm, svyglm, svyglm, svyglm) # functions for results
 if(!(length(formulas) == length(functions) & length(formulas) == length(families))) message('FORMULAS, FAMILIES, FUNCTIONS MISALIGNED')
+
+i <- 2
+m1 <- svyglm(formulas[[i]],
+             family=families[[i]], design=hrs.design, data=DF)
+summary(m1)
 
 lags <- list(
   ## Lags
     l.imp_cognitive = function(DF) DF %>% mutate(l.imp_cognitive=lag(imp_cognitive)),
-    l.wealth = function(DF) DF %>% mutate(l.wealth=lag(wealth)),
-    l.log_income = function(DF) DF %>% mutate(l.log_income=lag(log_income))
+    l.diab = function(DF) DF %>% mutate(l.diab=lag(diab)),
+    l.heart = function(DF) DF %>% mutate(l.heart=lag(heart))
     # l.bmi = function(DF) DF %>% mutate(l.bmi=lag(bmi)),
     # l.stroke = function(DF) DF %>% mutate(l.stroke=lag(stroke))
   ## Duration-weighted
@@ -90,8 +94,8 @@ natural_rules <- list(
     # Now handled above in the lags 
   # Probabilistic 
     imp_cognitive = function(DF, models, ...) simPredict(DF, models, 1),
-    wealth = function(DF, models, ...) simPredict(DF, models, 2),
-    log_income = function(DF, models, ...) simPredict(DF, models, 3),
+    diab = function(DF, models, ...) simPredict(DF, models, 2),
+    heart = function(DF, models, ...) simPredict(DF, models, 3),
     # bmi = function(DF, models, ...) simPredict(DF, models, 4),
     # stroke = function(DF, models, ...) simPredict(DF, models, 5),
     died = function(DF, models, ...) simPredict(DF, models, 4)
@@ -99,10 +103,10 @@ natural_rules <- list(
 
 # To calculate direct/indirect effects, we need an intervention to be enforced within the simulated data under the same natural rules. 
 intervention_rules_good <- list(
-  log_income = function(DF, ...) DF %>% mutate(log_income = 11) %>% select(log_income)
+  college = function(DF, ...) DF %>% mutate(college = 1) %>% select(college)
 )
 intervention_rules_bad <- list(
-  log_income = function(DF, ...) DF %>% mutate(log_income = 8) %>% select(log_income)
+  college = function(DF, ...) DF %>% mutate(college = 0) %>% select(college)
 )
 
 # Lastly, we need a set of rules for each specific effect to be simulated. Below are the rules for simulating the direct effect
@@ -111,11 +115,11 @@ direct_effect_rules <- list(
   ## DV of interest
   imp_cognitive = function(DF, models, ...) simPredict(DF, models, 1),
   ## Indirect pathways
-  wealth = function(DF, models, natural_DF, ...) simScenario(DF, models, natural_DF, 2),
+  diab = function(DF, models, natural_DF, intervention_DF, ...) simScenario(DF, models, intervention_DF, 2),
   # bmi = function(DF, models, natural_DF, ...) simScenario(DF, models, natural_DF, 4),
   # stroke = function(DF, models, natural_DF, ...) simScenario(DF, models, natural_DF, 5),
   ## Direct pathway
-  log_income = function(DF, models, natural_DF, intervention_DF, ...) simScenario(DF, models, intervention_DF, 3),
+  heart = function(DF, models, natural_DF, ...) simScenario(DF, models, natural_DF, 3),
   died = function(DF, models, ...) simPredict(DF, models, 4)
 )
 
@@ -126,17 +130,31 @@ setwd(g_repo)
 
 source("./gfit.R")
 DF <- DF[pweight!=0, ]
+DF[died==1, heart := l.heart]
+DF[died==1, diab := l.diab]
+DF <- DF[!is.na(heart) & !is.na(diab), ]
 hrs.design <- svydesign(id=~id, weights=~pweight, data=DF)
 bootruns <- lapply(1:boots, function(b) {
   
   message(paste0('Bootstrap ', b))
   
   # Sample individuals with replacement, not rows (this is how we propagate model error right now).
+  # sampleDF_all <- DF %>%
+  #   select(id) %>%
+  #   unique %>%
+  #   sample_frac(replace=TRUE) %>%
+  #   left_join(DF)
   sampleDF_all <- DF %>%
     select(id) %>%
     unique %>%
     sample_frac(replace=TRUE) %>%
-    left_join(DF)
+    group_by(id) %>% 
+    mutate(id_seq = row_number()) %>%
+    ungroup() %>%
+    mutate(new_id = as.numeric(paste0(id, id_seq))) %>%
+    left_join(DF, by='id') %>%
+    mutate(id = new_id) %>%
+    select(-c(id_seq, new_id))
   
   ## For testing a single bootstrap, just use the whole dataset so that I can see where the point estimate would be.
   # sampleDF_all <- DF
@@ -156,13 +174,23 @@ bootruns <- lapply(1:boots, function(b) {
   ## representative sample of people 50+, then age them through. It's fine to have lots of different ages as long as we predict/subract out mortality.
   mcDF_all <- mcDF_all %>%
     filter(year==1998) 
+  # mcDF_all <- mcDF_all %>%
+  #   #filter(age==min(age)) %>%
+  #   select(id,pweight) %>%
+  #   unique %>%
+  #   sample_frac(size=1, weight=pweight, replace=TRUE) %>%
+  #   select(id) %>%
+  #   left_join(mcDF_all)
   mcDF_all <- mcDF_all %>%
     #filter(age==min(age)) %>%
     select(id,pweight) %>%
     unique %>%
     sample_frac(size=1, weight=pweight, replace=TRUE) %>%
-    select(id) %>%
-    left_join(mcDF_all)
+    group_by(id) %>% 
+    mutate(id_seq = row_number()) %>%
+    ungroup() %>%
+    mutate(new_id = as.numeric(paste0(id, id_seq))) %>%
+    left_join(mcDF_all, by='id') 
   
   ## HRS CHANGES: Because data are observed every two years, the lagged time-varying variables in our models are all for 2-year lags. This means
   ## we need to progress the simulation in 2-year steps rather than the default 1-year steps. The alternative is treat "age" as a factor variable
@@ -213,17 +241,20 @@ compile_sims_simple <- function(name, bs) {
       bs[[i]][[name]] %>%
       mutate(sim=i)})) %>%
     as.data.table()
-  df[died==1, sim_death_year := min(age, na.rm=T), by='id']
-  df[is.na(sim_death_year), sim_death_year := 99999]
-  df[, died := as.numeric(ifelse(year >= sim_death_year, 1, 0)), by='id']
+  df[, sim_death_age := ifelse(died==1, age, 99999)]
+  df[, sim_death_age := min(sim_death_age), by=c('new_id','sim')]
+  df[age >= sim_death_age, died := 1]
+  # df[died==1, sim_death_year := min(age, na.rm=T), by='id']
+  # df[is.na(sim_death_year), sim_death_year := 99999]
+  # df[, died := as.numeric(ifelse(year >= sim_death_year, 1, 0)), by='id']
   ## DROP PEOPLE WHO DIED
   df <- df[died==0, ]
   df <- df %>%
     group_by(age, sim) %>%
     dplyr::summarize(
       cognitive = mean(imp_cognitive), 
-      wealth = mean(wealth),
-      income = mean(log_income)
+      diab = mean(as.numeric(as.character(diab))),
+      heart = mean(as.numeric(as.character(heart)))
     ) %>%
     select(-sim) %>%
     summarise_all(
@@ -275,6 +306,8 @@ all_runs_mort <- rbindlist(lapply(c('natural','intervention_good','intervention_
 all_runs <- rbind(all_runs, all_runs_mort[measure=='died', ])
 
 ## Get survey-weighted raw data
+DF[, diab := as.numeric(as.character(diab))]
+DF[, heart := as.numeric(as.character(heart))]
 make_svy_ci <- function(v) {
   if(v=='~died') hrs.design <- svydesign(id=~id, weights=~pweight, data=DF)
   if(v!='~died') hrs.design <- svydesign(id=~id, weights=~pweight, data=DF[died==0, ])
@@ -297,13 +330,14 @@ good_col <- '#1f78b4'
 bad_col <- '#e31a1c'
 nat_col <- '#33a02c'
 direct_col <- '#b2df8a'
-cols <- c('intervention_good' = '#1f78b4', 'intervention_bad' = '#e31a1c', 'Direct effect' = 'black', 'natural' = '#33a02c', 'indirect_effect_pov' = 'black', 'indirect_effect_marriage' = 'black')
+cols <- c('College' = '#1f78b4', 'No College' = '#e31a1c', 'direct' = 'black', 'natural' = '#33a02c', 'indirect_effect_diab' = 'black', 'indirect_effect_heart' = 'black')
 ## Figure 1. Fitted natural course from g-formula simulation compared to observed data.
-fig2_covs <- ggplot(data=cov_plot[type=='natural',], aes(x=age, y=mean)) +
+cov_plot[type=='natural', type := 'Natural']
+fig2_covs <- ggplot(data=cov_plot[age<=80 & type=='Natural',], aes(x=age, y=mean)) +
   geom_line(color=nat_col, size=1) +
   geom_ribbon(aes(ymin=lwr, ymax=upr), fill=nat_col, alpha=.5) +
-  geom_point(data=cov_obs, shape=21, fill=nat_col, color='black', size=5) + 
-  geom_errorbar(data=cov_obs, aes(ymin=lwr,ymax=upr)) + 
+  geom_point(data=cov_obs[age<=80,], shape=21, fill=nat_col, color='black', size=5) + 
+  geom_errorbar(data=cov_obs[age<=80,], aes(ymin=lwr,ymax=upr)) + 
   theme_bw() + 
   theme(strip.text.x = element_text(size = 20),
         axis.title = element_text(size = 15),
@@ -312,7 +346,9 @@ fig2_covs <- ggplot(data=cov_plot[type=='natural',], aes(x=age, y=mean)) +
   guides(fill=guide_legend(title='Simulated course'), color=FALSE) + labs(x='Child age',y='Population average (proportion or mean)')
 
 ## Figure 2. Fitted intervention course with direct effect.
-fig3_covs <- ggplot(data=cov_plot %>% filter(type %in% c('intervention_good','intervention_bad')), aes(x=age, y=mean)) +
+cov_plot[type=='intervention_good', type := 'College']
+cov_plot[type=='intervention_bad', type := 'No College']
+fig3_covs <- ggplot(data=cov_plot[age<=80 & type %in% c('College','No College'), ], aes(x=age, y=mean)) +
   geom_line(aes(color=type), size=1) +
   geom_ribbon(aes(ymin=lwr, ymax=upr, fill=type), alpha=.5) +
   scale_fill_manual(values=cols) + 
@@ -323,3 +359,42 @@ fig3_covs <- ggplot(data=cov_plot %>% filter(type %in% c('intervention_good','in
         axis.text = element_text(size = 15)) +
   facet_wrap(~measure, scales = 'free_y') +
   guides(fill=FALSE, color=guide_legend(title='Simulated course',override.aes = list(size=10))) + labs(x='Child age',y='Population average (proportion or mean)')
+
+## EFFECT TABLE
+compile_sims_table <- function(name, bs) {
+  df <- bind_rows(lapply(1:length(bs), function(i){
+    bs[[i]][[name]] %>%
+      mutate(sim=i)})) %>%
+    as.data.table()
+  df[died==1, sim_death_year := min(age, na.rm=T), by='id']
+  df[is.na(sim_death_year), sim_death_year := 99999]
+  df[, died := as.numeric(ifelse(year >= sim_death_year, 1, 0)), by='id']
+  df <- df %>%
+    group_by(age, sim) %>%
+    dplyr::summarize(
+      cognitive = mean(imp_cognitive), 
+      diab = mean(as.numeric(as.character(diab))),
+      heart = mean(as.numeric(as.character(heart)))
+    ) %>%
+    mutate(name=name)
+  df <- dcast(as.data.table(df), age ~ name + sim, value.var=c('cognitive','diab','heart'))
+  return(df)
+}
+all_effects <- lapply(c('natural','intervention_good','intervention_bad','direct'), compile_sims_table, bs=bootruns)
+all_effects <- Reduce(merge, all_effects)
+#for(c in c('mppvt','married','lesshs','pov','jail','depression','unemployed','censor','mwodtke')) {
+for(c in c('cognitive')) {
+  for(b in 1:boots) all_effects[, (paste0(c, '_total_', b)) := get(paste0(c, '_intervention_good_', b)) - get(paste0(c, '_intervention_bad_', b))]
+  for(b in 1:boots) all_effects[, (paste0(c, '_direct_', b)) := get(paste0(c, '_direct_', b)) - get(paste0(c, '_intervention_bad_', b))]
+  for(b in 1:boots) all_effects[, (paste0(c, '_p_direct_', b)) := get(paste0(c, '_direct_', b)) / get(paste0(c, '_total_', b)) * 100]
+}
+for(c in c('total','direct','p_direct')) {
+  all_effects[, (paste0(c,'_lower')) := apply(.SD, 1, quantile, c(.025), na.rm=T), .SDcols=grep(paste0('^cognitive_', c), names(all_effects))]
+  all_effects[, (paste0(c,'_mean')) := apply(.SD, 1, mean), .SDcols=grep(paste0('^cognitive_', c), names(all_effects))]
+  all_effects[, (paste0(c,'_upper')) := apply(.SD, 1, quantile, c(.975), na.rm=T), .SDcols=grep(paste0('^cognitive_', c), names(all_effects))]
+  all_effects[, (c) := paste0(round(get((paste0(c,'_mean'))),1), ' (', round(get((paste0(c,'_lower'))),1), ' - ', round(get((paste0(c,'_upper'))),1), ')')]
+  
+}
+all_effects <- all_effects[, c('age','total','direct','p_direct')]
+all_effects <- all_effects[age %in% c(55,60,65,70,75), ]
+write.csv(all_effects, 'C:/Users/ngraetz/Dropbox/Penn/stat590/effects.csv')

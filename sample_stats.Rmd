@@ -1,0 +1,94 @@
+---
+title: "Tables testing"
+author: "Nick Graetz"
+output: pdf_document
+---
+  
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+# Load knitr package and settings
+library(knitr)
+library(data.table)
+library(ggplot2)
+library(formatR)
+library(kableExtra)
+options(scipen=999)
+#opts_chunk$set(fig.align='center', tidy=TRUE, tidy.opts=list(blank=TRUE, width.cutoff=40), warning=FALSE,message=FALSE)
+#opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
+knit_hooks$set(small.mar = function(before, options, envir) {
+    if (before)    par(mar=c(1,1,1,1)+.1)  # smaller margin on top and right
+})
+opts_chunk$set(small.mar=TRUE)
+```
+
+\small
+```{r, echo=FALSE, eval=TRUE, results='asis'}
+repo <- 'C:/Users/ngraetz/Documents/repos/hrs'
+setwd(repo)
+hrs <- readRDS('hrs_imputed_v2.RDS')
+
+## Make exploratory tables
+hrs[, waves := ifelse(is.na(cognitive), 0, 1)]
+hrs[, waves := sum(waves), by=id]
+hrs[, baseline_age := min(age, na.rm=T), by=id]
+totals <- unique(hrs[!is.na(edu_cat) & !is.na(race), c('id','waves','race','edu_cat'), with=F])
+totals[, N := 1]
+grand <- totals[, list(N=sum(N)), by='waves']
+grand <- dcast(grand, .~waves, value.var='N')
+setnames(grand,'.','Variable')
+grand[, Variable := 'N']
+race_edu_totals <- totals[, list(N=sum(N)), by=c('waves','race','edu_cat')]
+race_edu_totals[, Variable := paste0(race,', ',edu_cat)]
+race_edu_totals <- dcast(race_edu_totals, Variable~waves, value.var='N')
+age <- hrs[, list(baseline_age=mean(baseline_age)), by='waves']
+age <- dcast(age, .~waves, value.var='baseline_age')
+setnames(age,'.','Variable')
+age[, Variable := 'Baseline age']
+table1 <- rbind(race_edu_totals,grand,age)
+table1[, Variable := gsub('_',' ',Variable)]
+table1[, Variable := gsub('white, |black, |hispanic, |other, ','',Variable)]
+t <- landscape(kable(table1, format = 'latex', booktabs = TRUE, linesep = "", caption='Sample sizes by race and education.', col.names = c('',paste0('Wave ', 0:9)), digits = 0, escape = FALSE) %>%
+   kable_styling(latex_options = c("striped","repeat_header"), full_width = T, position = "center", font_size = 12) %>%
+   group_rows('Black', 1, 4) %>%
+   group_rows('Hispanic', 5, 8) %>%
+   group_rows('Other', 9, 12) %>%
+   group_rows('White', 13, 16) %>%
+   group_rows('Total', 17, 18) %>%
+   column_spec(column = 1, width = "17em"))
+print(t)
+
+## Make same table with only those where we observe "baseline" cognition
+model_hrs <- hrs[!is.na(cognitive), ]
+model_hrs[, age_obs := age]
+model_hrs[, age_obs := min(age_obs, na.rm = T), by = id]
+model_hrs[age==age_obs, baseline_cog := cognitive]
+model_hrs[, baseline_cog := max(baseline_cog, na.rm = T), by = id] ## Repeat within individual
+model_hrs <- model_hrs[age_obs < 60, ]
+model_hrs[, waves := ifelse(is.na(cognitive), 0, 1)]
+model_hrs[, waves := sum(waves), by=id]
+model_hrs[, baseline_age := min(age, na.rm=T), by=id]
+totals <- unique(model_hrs[!is.na(edu_cat) & !is.na(race), c('id','waves','race','edu_cat'), with=F])
+totals[, N := 1]
+grand <- totals[, list(N=sum(N)), by='waves']
+grand <- dcast(grand, .~waves, value.var='N')
+setnames(grand,'.','Variable')
+grand[, Variable := 'N']
+race_edu_totals <- totals[, list(N=sum(N)), by=c('waves','race','edu_cat')]
+race_edu_totals[, Variable := paste0(race,', ',edu_cat)]
+race_edu_totals <- dcast(race_edu_totals, Variable~waves, value.var='N')
+age <- model_hrs[, list(baseline_age=mean(baseline_age)), by='waves']
+age <- dcast(age, .~waves, value.var='baseline_age')
+setnames(age,'.','Variable')
+age[, Variable := 'Baseline age']
+table1 <- rbind(race_edu_totals,grand,age)
+table1[, Variable := gsub('_',' ',Variable)]
+table1[, Variable := gsub('white, |black, |hispanic, |other, ','',Variable)]
+t <- landscape(kable(table1, format = 'latex', booktabs = TRUE, linesep = "", caption='Sample sizes by race and education.', col.names = c('',paste0('Wave ', 1:9)), digits = 0, escape = FALSE) %>%
+   kable_styling(latex_options = c("striped","repeat_header"), full_width = T, position = "center", font_size = 12) %>%
+   group_rows('Black', 1, 4) %>%
+   group_rows('Hispanic', 5, 8) %>%
+   group_rows('Other', 9, 12) %>%
+   group_rows('White', 13, 16) %>%
+   group_rows('Total', 17, 18) %>%
+   column_spec(column = 1, width = "17em"))
+print(t)
+```

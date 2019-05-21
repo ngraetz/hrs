@@ -29,7 +29,8 @@ options(scipen=999)
 ```{r, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
 repo <- 'C:/Users/ngraetz/Documents/repos/hrs'
 setwd(repo)
-hrs <- readRDS('hrs_imputed.RDS')
+hrs <- readRDS('hrs_imputed_v2.RDS')
+# hrs <- readRDS('./clean_data/df1d_imputed.RDS')
 model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_vars, survey_weight = FALSE, use_REML = FALSE) {
   
   ## Subset data to race or baseline cognition.
@@ -105,57 +106,57 @@ model_trajectories <- function(group_option, outcome_var, numeric_vars, factor_v
   if(!survey_weight) {
     model1 <- lmer(model_formula, data=model_hrs, REML=use_REML)
   }
-  res <- coef(model1)$id_factor
-  ids <- rownames(res)
-  res <- as.data.table(res)
-  res[, id_factor := ids]
-  # setnames(res, c('(Intercept)','poly(age, 2)1','poly(age, 2)2'), c('age_int','age_slope1','age_slope2'))
-  # setnames(res, c('(Intercept)','age_poly_1','age_poly_2'), c('age_int','age_slope1','age_slope2'))
-  # res <- res[, c('id_factor','age_int','age_slope1','age_slope2')]
-  setnames(res, c('(Intercept)','racehispanic','raceother','racewhite','age_poly_1','age_poly_2','age_poly_1:racehispanic','age_poly_1:raceother','age_poly_1:racewhite','racehispanic:age_poly_2','raceother:age_poly_2','racewhite:age_poly_2'),
-           c('age_int','hispanic_int','other_int','white_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white',
-             'age_slope2_hispanic','age_slope2_other','age_slope2_white'))
-  res <- res[, c('id_factor','age_int','hispanic_int','other_int','white_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white','age_slope2_hispanic','age_slope2_other','age_slope2_white')]
-  plot_data <- merge(model_hrs, res, by='id_factor')
-  # plot_data[, growth_curve := age_int + (age_poly_1 * age_slope1) + (age_poly_2 * age_slope2)]
-  plot_data[race=='black', growth_curve := age_int + (age_poly_1 * (age_slope1)) + (age_poly_2 * (age_slope2))]
-  plot_data[race=='white', growth_curve := (age_int + white_int) + (age_poly_1 * (age_slope1 + age_slope1_white)) + (age_poly_2 * (age_slope2 + age_slope2_white))]
-  plot_data[race=='other', growth_curve := (age_int + other_int) + (age_poly_1 * (age_slope1 + age_slope1_other)) + (age_poly_2 * (age_slope2 + age_slope2_other))]
-  plot_data[race=='hispanic', growth_curve := (age_int + hispanic_int) + (age_poly_1 * (age_slope1 + age_slope1_hispanic)) + (age_poly_2 * (age_slope2 + age_slope2_hispanic))]
-  plot_data[, growth_curve := growth_curve * scales[variable==outcome_var, sd] + scales[variable==outcome_var, mean]]
-  plot_data[, group := group_option]
-  if(group_option=='all') plot_data[, group := race]
-  # setnames(res, c('(Intercept)','age'), c('age_int','age_slope'))
-  # res <- res[, c('id_factor','age_int','age_slope')]
+  # res <- coef(model1)$id_factor
+  # ids <- rownames(res)
+  # res <- as.data.table(res)
+  # res[, id_factor := ids]
+  # # setnames(res, c('(Intercept)','poly(age, 2)1','poly(age, 2)2'), c('age_int','age_slope1','age_slope2'))
+  # # setnames(res, c('(Intercept)','age_poly_1','age_poly_2'), c('age_int','age_slope1','age_slope2'))
+  # # res <- res[, c('id_factor','age_int','age_slope1','age_slope2')]
+  # setnames(res, c('(Intercept)','racehispanic','raceother','racewhite','age_poly_1','age_poly_2','age_poly_1:racehispanic','age_poly_1:raceother','age_poly_1:racewhite','racehispanic:age_poly_2','raceother:age_poly_2','racewhite:age_poly_2'),
+  #          c('age_int','hispanic_int','other_int','white_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white',
+  #            'age_slope2_hispanic','age_slope2_other','age_slope2_white'))
+  # res <- res[, c('id_factor','age_int','hispanic_int','other_int','white_int','age_slope1','age_slope2','age_slope1_hispanic','age_slope1_other','age_slope1_white','age_slope2_hispanic','age_slope2_other','age_slope2_white')]
   # plot_data <- merge(model_hrs, res, by='id_factor')
-  # plot_data[, growth_curve := age_int + (age * age_slope)]
-  # plot_data[, growth_curve := growth_curve * scales[variable=='cognitive', sd] + scales[variable=='cognitive', mean]]
-  # plot_data[, age := age * scales[variable=='age', sd] + scales[variable=='age', mean]]
-  
-  ## Calculate population average trajectory.
-  # mean_growth <- data.table(age = seq(min(model_hrs$age), max(model_hrs$age), .01),
-  #                           mean_int = mean(res$age_int),
-  #                           mean_slope = mean(res$age_slope),
-  #                           race = race_option)
-  # mean_growth[, growth_curve := mean_int + (age * mean_slope)]
-  # mean_growth[, growth_curve := growth_curve * scales[variable=='cognitive', sd] + scales[variable=='cognitive', mean]]
-  # mean_growth[, age := age * scales[variable=='age', sd] + scales[variable=='age', mean]]
-  plot_data[, N := 1]
-  mean_growth <- plot_data[, list(N=sum(N), age_poly_1=mean(age_poly_1), age_poly_2=mean(age_poly_2)), by=c('age','race')]
-  # mean_growth <- unique(plot_data[, c('age','age_poly_1','age_poly_2')])
-  mean_growth[, age_int := mean(res$age_int)]
-  mean_growth[, age_slope1 := mean(res$age_slope1)]
-  mean_growth[, age_slope2 := mean(res$age_slope2)]
-  for(r in c('white','hispanic','other')) {
-    mean_growth[race==r, age_int := age_int + mean(res[, get(paste0(r,'_int'))])]
-    mean_growth[race==r, age_slope1 := age_slope1 + mean(res[, get(paste0('age_slope1_',r))])]
-    mean_growth[race==r, age_slope2 := age_slope2 + mean(res[, get(paste0('age_slope2_',r))])]
-  }
-  mean_growth[, growth_curve := age_int + (age_poly_1 * age_slope1) + (age_poly_2 * age_slope2)]
-  mean_growth[, growth_curve := growth_curve * scales[variable==outcome_var, sd] + scales[variable==outcome_var, mean]]
-  mean_growth[, group := group_option]
-  if(group_option=='all') mean_growth[, group := race]
-  return(list(model1, plot_data, mean_growth))
+  # # plot_data[, growth_curve := age_int + (age_poly_1 * age_slope1) + (age_poly_2 * age_slope2)]
+  # plot_data[race=='black', growth_curve := age_int + (age_poly_1 * (age_slope1)) + (age_poly_2 * (age_slope2))]
+  # plot_data[race=='white', growth_curve := (age_int + white_int) + (age_poly_1 * (age_slope1 + age_slope1_white)) + (age_poly_2 * (age_slope2 + age_slope2_white))]
+  # plot_data[race=='other', growth_curve := (age_int + other_int) + (age_poly_1 * (age_slope1 + age_slope1_other)) + (age_poly_2 * (age_slope2 + age_slope2_other))]
+  # plot_data[race=='hispanic', growth_curve := (age_int + hispanic_int) + (age_poly_1 * (age_slope1 + age_slope1_hispanic)) + (age_poly_2 * (age_slope2 + age_slope2_hispanic))]
+  # plot_data[, growth_curve := growth_curve * scales[variable==outcome_var, sd] + scales[variable==outcome_var, mean]]
+  # plot_data[, group := group_option]
+  # if(group_option=='all') plot_data[, group := race]
+  # # setnames(res, c('(Intercept)','age'), c('age_int','age_slope'))
+  # # res <- res[, c('id_factor','age_int','age_slope')]
+  # # plot_data <- merge(model_hrs, res, by='id_factor')
+  # # plot_data[, growth_curve := age_int + (age * age_slope)]
+  # # plot_data[, growth_curve := growth_curve * scales[variable=='cognitive', sd] + scales[variable=='cognitive', mean]]
+  # # plot_data[, age := age * scales[variable=='age', sd] + scales[variable=='age', mean]]
+  # 
+  # ## Calculate population average trajectory.
+  # # mean_growth <- data.table(age = seq(min(model_hrs$age), max(model_hrs$age), .01),
+  # #                           mean_int = mean(res$age_int),
+  # #                           mean_slope = mean(res$age_slope),
+  # #                           race = race_option)
+  # # mean_growth[, growth_curve := mean_int + (age * mean_slope)]
+  # # mean_growth[, growth_curve := growth_curve * scales[variable=='cognitive', sd] + scales[variable=='cognitive', mean]]
+  # # mean_growth[, age := age * scales[variable=='age', sd] + scales[variable=='age', mean]]
+  # plot_data[, N := 1]
+  # mean_growth <- plot_data[, list(N=sum(N), age_poly_1=mean(age_poly_1), age_poly_2=mean(age_poly_2)), by=c('age','race')]
+  # # mean_growth <- unique(plot_data[, c('age','age_poly_1','age_poly_2')])
+  # mean_growth[, age_int := mean(res$age_int)]
+  # mean_growth[, age_slope1 := mean(res$age_slope1)]
+  # mean_growth[, age_slope2 := mean(res$age_slope2)]
+  # for(r in c('white','hispanic','other')) {
+  #   mean_growth[race==r, age_int := age_int + mean(res[, get(paste0(r,'_int'))])]
+  #   mean_growth[race==r, age_slope1 := age_slope1 + mean(res[, get(paste0('age_slope1_',r))])]
+  #   mean_growth[race==r, age_slope2 := age_slope2 + mean(res[, get(paste0('age_slope2_',r))])]
+  # }
+  # mean_growth[, growth_curve := age_int + (age_poly_1 * age_slope1) + (age_poly_2 * age_slope2)]
+  # mean_growth[, growth_curve := growth_curve * scales[variable==outcome_var, sd] + scales[variable==outcome_var, mean]]
+  # mean_growth[, group := group_option]
+  # if(group_option=='all') mean_growth[, group := race]
+  return(list(model1))
   
 }
 
@@ -172,33 +173,49 @@ if(ses) numeric_vars <- c('edu_years','wealth','log_income')
 if(!ses) numeric_vars <- NULL
 factor_vars <- c('as.factor(female)','as.factor(cohort_group)')
 
-pull_models <- function(cat) {
+pull_models <- function(cat, covs, factor_vars) {
 all_models1 <- model_trajectories(cat, outcome_var, numeric_vars=NULL, factor_vars, survey_weight = FALSE, use_REML = REML)
 all_models1 <- all_models1[[1]]
 all_models2 <- model_trajectories(cat, outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
 all_models2 <- all_models2[[1]]
-all_models3 <- model_trajectories(cat, outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = FALSE, use_REML = REML)
+all_models3 <- model_trajectories(cat, outcome_var, numeric_vars=covs, factor_vars, survey_weight = FALSE, use_REML = REML)
 all_models3 <- all_models3[[1]]
-all_models4 <- model_trajectories(cat, outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)
+all_models4 <- model_trajectories(cat, outcome_var, numeric_vars=covs, factor_vars, survey_weight = TRUE, use_REML = REML)
 all_models4 <- all_models4[[1]]
 all_models <- list(all_models1, all_models2, all_models3, all_models4)
 return(all_models)
 }
-all_models <- pull_models('all')
+all_models <- pull_models('all', covs=c('edu_years','wealth','log_income'), factor_vars=factor_vars)
+all_models_cat <- pull_models('all', covs=c('wealth','log_income'), factor_vars = c(factor_vars,'edu_cat'))
 
 white1 <- model_trajectories('white', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
 white1 <- white1[[1]]
 white2 <- model_trajectories('white', outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)
 white2 <- white2[[1]]
-white1 <- model_trajectories('black', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
-white1 <- white1[[1]]
-white2 <- model_trajectories('black', outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)
-white2 <- white2[[1]]
-white1 <- model_trajectories('hispanic', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
-white1 <- white1[[1]]
-white2 <- model_trajectories('hispanic', outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)
-white2 <- white2[[1]]
+black1 <- model_trajectories('black', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
+black1 <- black1[[1]]
+black2 <- model_trajectories('black', outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)
+black2 <- black2[[1]]
+hispanic1 <- model_trajectories('hispanic', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
+hispanic1 <- hispanic1[[1]]
+hispanic2 <- model_trajectories('hispanic', outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)
+hispanic2 <- hispanic2[[1]]
 race_models <- list(white1,white2,black1,black2,hispanic1,hispanic2)
+
+## Education categories
+white1 <- model_trajectories('white', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
+white1 <- white1[[1]]
+white2 <- model_trajectories('white', outcome_var, numeric_vars=c('wealth','log_income'), c(factor_vars,'edu_cat'), survey_weight = TRUE, use_REML = REML)
+white2 <- white2[[1]]
+black1 <- model_trajectories('black', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
+black1 <- black1[[1]]
+black2 <- model_trajectories('black', outcome_var, numeric_vars=c('wealth','log_income'), c(factor_vars,'edu_cat'), survey_weight = TRUE, use_REML = REML)
+black2 <- black2[[1]]
+hispanic1 <- model_trajectories('hispanic', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)
+hispanic1 <- hispanic1[[1]]
+hispanic2 <- model_trajectories('hispanic', outcome_var, numeric_vars=c('wealth','log_income'), c(factor_vars,'edu_cat'), survey_weight = TRUE, use_REML = REML)
+hispanic2 <- hispanic2[[1]]
+race_models_cat <- list(white1,white2,black1,black2,hispanic1,hispanic2)
 
 # bs1 <- model_trajectories('white', outcome_var, numeric_vars=NULL, factor_vars, survey_weight = TRUE, use_REML = REML)[[1]]
 # bs2 <- model_trajectories('white', outcome_var, numeric_vars=c('edu_years','wealth','log_income'), factor_vars, survey_weight = TRUE, use_REML = REML)[[1]]
@@ -215,6 +232,8 @@ race_models <- list(white1,white2,black1,black2,hispanic1,hispanic2)
 # stargazer(white_models, style="ajps", title="White only", column.labels = c('Crude','Weight','Crude','Weight'))
 # stargazer(black_models, style="ajps", title="Black only", column.labels = c('Crude','Weight','Crude','Weight'))
 tab_model(all_models, adjusted = TRUE, dv.labels = c('Crude','Weight','Crude','Weight'), show.ci=FALSE, p.style='asterisk', file = 'all_models.html')
+tab_model(all_models_cat, adjusted = TRUE, dv.labels = c('Crude','Weight','Crude','Weight'), show.ci=FALSE, p.style='asterisk', file = 'all_models.html')
 tab_model(race_models, adjusted = TRUE, dv.labels = c('White','White','Black','Black','Hispanic','Hispanic'), show.ci=FALSE, p.style='asterisk', file = 'race_models.html')
+tab_model(race_models_cat, adjusted = TRUE, dv.labels = c('White','White','Black','Black','Hispanic','Hispanic'), show.ci=FALSE, p.style='asterisk', file = 'race_models.html')
 # tab_model(bs_models, adjusted = TRUE, dv.labels = c('Low','Low','Middle','Middle','High','High'), show.ci=FALSE, p.style='asterisk', file = 'bs_models.html')
 ```

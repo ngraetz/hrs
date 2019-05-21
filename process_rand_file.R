@@ -130,7 +130,7 @@ hrs[, cohort := as.Date(as.numeric(birthDate), origin = '1960-01-01')]
 hrs[, cohort := as.numeric(substr(cohort,1,4))]
 hrs[, id := hhidpn]
 hrs <- melt(hrs,
-            id.vars = c('id','cohort','femalehrsGform','whitehrsGform','blackhrsGform','hispanichrsGform','otherhrsGform','educYrs'),
+            id.vars = c('id','cohort','femalehrsGform','whitehrsGform','blackhrsGform','hispanichrsGform','otherhrsGform','educYrs','educCat'),
             measure.vars = patterns('age_','cogScore_','sampWeight_','wealth_','income_'),
             value.name = c('age','cognitive','pweight','wealth','income'))
 hrs[, pweight := as.numeric(pweight)]
@@ -159,14 +159,20 @@ for(v in c('wealth','income')) {
   hrs <- hrs[get(v) > quantile(hrs[, get(v)], c(0.01)), ]
 }
 hrs[, log_income := log(income)]
+## Format categorical education
+hrs[educCat %in% c('1.lt high-school'), edu_cat := 'less_highschool']
+hrs[educCat %in% c('2.ged','3.high-school graduate'), edu_cat := 'highschool']
+hrs[educCat %in% c('4.some college'), edu_cat := 'some_college']
+hrs[educCat %in% c('5.college and above'), edu_cat := 'college']
+
 ## Multiple imputation for missing data.
 ## For some reason, id or pweight messes up MI. It is definitely because it introduces some extreme imbalance (i.e. trying to invert an non-invertible matrix somewhere), but I can't think of why...
 ## I guess it just over-identifies everything somewhere so there is zero variation.
 sapply(hrs, function(x) sum(is.na(x)))
-mi_list <- mice(hrs[, c('cohort','age','cognitive','race','female','edu_years')], m=5)
-imp_geo <- mice::complete(mi_list)
-imp_geo <- as.data.table(imp_geo)
-sapply(imp_geo, function(x) sum(is.na(x)))
-imp_hrs <- as.data.table(imp_geo)
-hrs[, imp_cognitive := imp_hrs[, cognitive]]
-saveRDS(hrs, 'hrs_imputed.RDS')
+# mi_list <- mice(hrs[, c('cohort','age','cognitive','race','female','edu_years')], m=5)
+# imp_geo <- mice::complete(mi_list)
+# imp_geo <- as.data.table(imp_geo)
+# sapply(imp_geo, function(x) sum(is.na(x)))
+# imp_hrs <- as.data.table(imp_geo)
+# hrs[, imp_cognitive := imp_hrs[, cognitive]]
+saveRDS(hrs, 'hrs_imputed_v2.RDS')
