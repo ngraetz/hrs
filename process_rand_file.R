@@ -131,14 +131,15 @@ hrs[, cohort := as.numeric(substr(cohort,1,4))]
 hrs[, id := hhidpn]
 hrs <- melt(hrs,
             id.vars = c('id','cohort','femalehrsGform','whitehrsGform','blackhrsGform','hispanichrsGform','otherhrsGform','educYrs','educCat'),
-            measure.vars = patterns('age_','cogScore_','sampWeight_','wealth_','income_'),
-            value.name = c('age','cognitive','pweight','wealth','income'))
+            measure.vars = patterns('age_','cogScore_','sampWeight_','wealth_','income_','moEducYrs'),
+            value.name = c('age','cognitive','pweight','wealth','income','mother_edu'))
 hrs[, pweight := as.numeric(pweight)]
 hrs[, age := as.numeric(age)]
 hrs[, cognitive := as.numeric(cognitive)]
 hrs[, wealth := as.numeric(wealth)]
 hrs[, income := as.numeric(income)]
 hrs[, edu_years := as.numeric(educYrs)]
+hrs[, edu_years_mother := as.numeric(unique(mother_edu)[1]), by='id']
 hrs[whitehrsGform==1, race := 'white']
 hrs[blackhrsGform==1, race := 'black']
 hrs[hispanichrsGform==1, race := 'hispanic']
@@ -175,4 +176,4 @@ sapply(hrs, function(x) sum(is.na(x)))
 # sapply(imp_geo, function(x) sum(is.na(x)))
 # imp_hrs <- as.data.table(imp_geo)
 # hrs[, imp_cognitive := imp_hrs[, cognitive]]
-saveRDS(hrs, 'hrs_imputed_v2.RDS')
+saveRDS(hrs, 'hrs_imputed_v3.RDS')

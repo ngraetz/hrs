@@ -135,3 +135,12 @@ iv_gamma <- function(start, stop, by) {
     theme_bw()
   return(results)
 }
+
+clean_cov_names <- function() {
+  
+  cov_names <- data.table(var = c('female','race_white','race_black','race_hispanic','race_other','cohort_group_1930','cohort_group_1940','cohort_group_1950','original_baseline_cog','edu_cat_less_highschool','edu_cat_highschool','edu_cat_some_college','edu_cat_college','N'),
+  name = c('Female','White','Black','Hispanic','Other','1930','1940','1950','Baseline cognition','Less than high school','High school','Some college','College+','Person-years'))
+  cov_names[, cov_sort := 1:.N]
+  return(cov_names)
+  
+}

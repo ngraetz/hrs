@@ -1,0 +1,57 @@
+---
+title: "Tables testing"
+author: "Nick Graetz"
+output: pdf_document
+
+---
+
+```{r, echo=FALSE, eval=TRUE, results='asis'}
+clean_cov_names <- function() {
+  cov_names <- data.table(var = c('female','race_white','race_black','race_hispanic','race_other','cohort_group_1930','cohort_group_1940','cohort_group_1950','original_baseline_cog','edu_cat_less_highschool','edu_cat_highschool','edu_cat_some_college','edu_cat_college','N'),
+  name = c('Female','White','Black','Hispanic','Other','1930','1940','1950','Baseline cognition','Less than high school','High school','Some college','College+','Person-years'))
+  cov_names[, cov_sort := 1:.N]
+  return(cov_names)
+}
+library(knitr)
+library(data.table)
+library(ggplot2)
+library(formatR)
+library(kableExtra)
+options(scipen=999)
+cov_names <- clean_cov_names()
+
+t <- readRDS("C:/Users/ngraetz/Documents/repos/hrs/table1.rds")
+t <- merge(t, cov_names, by.x='variable', by.y='var')
+t <- t[order(cov_sort)]
+t[, cov_sort := NULL]
+t[, variable := NULL]
+setcolorder(t, 'name')
+landscape(kable(t, caption = 'Unweighted sample statistics.', align=c('l',rep('r',7)), format = 'latex', booktabs = TRUE, longtable=T, digits = 1,escape=F,
+                col.names = c(" ",'50-54','55-59','60-64','65-69','70-74','75-79','80+')) %>%
+   kable_styling(font_size = 12) %>%
+   group_rows("", 1, 1) %>%
+   group_rows("Race/ethnicity", 2, 5) %>%
+   group_rows("Birth cohort", 6, 8) %>%
+   group_rows("Baseline characteristics", 9, 9) %>%
+   group_rows("Education", 10, 13) %>%
+   group_rows("", 14, 14) %>%
+   column_spec(column = 1, width = "13em"))
+
+t <- readRDS("C:/Users/ngraetz/Documents/repos/hrs/table1_weighted.rds")
+t <- merge(t, cov_names, by.x='variable', by.y='var')
+t <- t[order(cov_sort)]
+t[, cov_sort := NULL]
+t[, variable := NULL]
+setcolorder(t, 'name')
+landscape(kable(t, caption = 'Weighted sample statistics.', align=c('l',rep('r',7)), format = 'latex', booktabs = TRUE, longtable=T, digits = 1,escape=F,
+                col.names = c(" ",'50-54','55-59','60-64','65-69','70-74','75-79','80+')) %>%
+   kable_styling(font_size = 12) %>%
+   group_rows("", 1, 1) %>%
+   group_rows("Race/ethnicity", 2, 5) %>%
+   group_rows("Birth cohort", 6, 8) %>%
+   group_rows("Baseline characteristics", 9, 9) %>%
+   group_rows("Education", 10, 13) %>%
+   group_rows("", 14, 14) %>%
+   column_spec(column = 1, width = "13em"))
+```
+
